@@ -1,3 +1,5 @@
+# BioWDL fork
+This is a fork of the BioWDL tasks repo, to try out some local customizations and standard templating approaches.
 # Tasks
 This repository contains the WDL task definitions used in the various
 [Biowdl](https://github.com/biowdl) workflows and pipelines.
