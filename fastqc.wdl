@@ -23,7 +23,7 @@ version 1.0
 task Fastqc {
     input {
         File seqFile
-        String outdirPath
+        String outdirPath = "."
         Boolean casava = false
         Boolean nano = false
         Boolean noFilter = false
