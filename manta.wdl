@@ -34,7 +34,7 @@ task Germline {
 
         Int cores = 1
         Int memoryGb = 4
-        Int timeMinutes = 60
+        Int timeMinutes = 2880
         String dockerImage = "quay.io/biocontainers/manta:1.4.0--py27_1"
     }
 
@@ -60,7 +60,7 @@ task Germline {
 
     runtime {
         cpu: cores
-        memory: "~{memoryGb}G"
+        memory: "~{memoryGb}GiB"
         docker: dockerImage
         time_minutes: timeMinutes
     }
@@ -102,7 +102,7 @@ task Somatic {
 
         Int cores = 1
         Int memoryGb = 4
-        Int timeMinutes = 60
+        Int timeMinutes = 2880
         String dockerImage = "quay.io/biocontainers/manta:1.4.0--py27_1"
     }
 
@@ -138,7 +138,7 @@ task Somatic {
 
     runtime {
         cpu: cores
-        memory: "~{memoryGb}G"
+        memory: "~{memoryGb}GiB"
         docker: dockerImage
         time_minutes: timeMinutes
     }

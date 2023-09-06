@@ -81,11 +81,12 @@ task Cutadapt {
         Boolean? bwa
         Boolean? zeroCap
         Boolean? noZeroCap
+        Boolean revcomp = false
 
         Int cores = 4
-        String memory = "5G"
+        String memory = "5GiB"
         Int timeMinutes = 1 + ceil(size([read1, read2], "G")  * 12.0 / cores)
-        String dockerImage = "quay.io/biocontainers/cutadapt:2.10--py37hf01694f_1"
+        String dockerImage = "quay.io/biocontainers/cutadapt:4.4--py310h1425a21_0"
     }
 
     String realRead2output = select_first([read2output, "cut_r2.fq.gz"])
@@ -149,6 +150,7 @@ task Cutadapt {
         ~{true="--bwa" false="" bwa} \
         ~{true="--zero-cap" false="" zeroCap} \
         ~{true="--no-zero-cap" false="" noZeroCap} \
+        ~{if revcomp then "--revcomp" else ""} \
         ~{read1} \
         ~{read2} \
         ~{"> " + reportPath}
@@ -231,6 +233,7 @@ task Cutadapt {
         bwa: {description: "Equivalent to cutadapt's --bwa flag.", category: "advanced"}
         zeroCap: {description: "Equivalent to cutadapt's --zero-cap flag.", category: "advanced"}
         noZeroCap: {description: "Equivalent to cutadapt's --no-zero-cap flag.", category: "advanced"}
+        revcomp: {description: "Equivalent to cutadapt's --revcomp flag.", category: "advanced"}
         cores: {description: "The number of cores to use.", category: "advanced"}
         memory: {description: "The amount of memory this job will use.", category: "advanced"}
         timeMinutes: {description: "The maximum amount of time the job will run in minutes.", category: "advanced"}

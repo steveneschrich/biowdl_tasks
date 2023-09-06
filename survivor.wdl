@@ -31,9 +31,9 @@ task Merge {
         Int minSize = 30
         String outputPath = "./survivor/merged.vcf"
 
-        String memory = "24G"
+        String memory = "24GiB"
         Int timeMinutes = 60
-        String dockerImage = "quay.io/biocontainers/survivor:1.0.6--h6bb024c_0"
+        String dockerImage = "quay.io/biocontainers/survivor:1.0.7--hd03093a_2"
     }
 
     command {

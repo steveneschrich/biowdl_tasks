@@ -37,7 +37,7 @@ task Mem {
 
         Int threads = 4
         Int? memoryGb
-        Int timeMinutes = 10 + ceil(size([read1, read2], "G") * 300 / threads)
+        Int timeMinutes = 10 + ceil(size([read1, read2], "GiB") * 300 / threads)
         # Contains bwa 0.7.17 bwakit 0.7.17.dev1 and samtools 1.10.
         String dockerImage = "quay.io/biocontainers/mulled-v2-ad317f19f5881324e963f6a6d464d696a2825ab6:c59b7a73c87a9fe81737d5d628e10a3b5807f453-0"
     }
@@ -48,7 +48,7 @@ task Mem {
     Int estimatedSortThreads = if threads == 1 then 1 else 1 + ceil(threads / 4.0)
     Int totalSortThreads = select_first([sortThreads, estimatedSortThreads])
     # BWA needs slightly more memory than the size of the index files (~10%). Add a margin for safety here.
-    Int estimatedMemoryGb = 10 + ceil(size(bwaIndex.indexFiles, "G") * 2) + sortMemoryPerThreadGb * totalSortThreads
+    Int estimatedMemoryGb = 10 + ceil(size(bwaIndex.indexFiles, "GiB") * 2) + sortMemoryPerThreadGb * totalSortThreads
     
     # The bwa postalt script is out commented as soon as usePostalt = false.
     # This hack was tested with bash, dash and ash. It seems that comments in between pipes work for all of them.
@@ -81,7 +81,7 @@ task Mem {
         # One extra thread for bwa-postalt + samtools is not needed.
         # These only use 5-10% of compute power and not always simultaneously.
         cpu: threads
-        memory: "~{select_first([memoryGb, estimatedMemoryGb])}G"
+        memory: "~{select_first([memoryGb, estimatedMemoryGb])}GiB"
         time_minutes: timeMinutes
         docker: dockerImage
     }
@@ -113,4 +113,49 @@ task Mem {
 struct BwaIndex {
     File fastaFile
     Array[File] indexFiles
+}
+
+task Index {
+    input {
+        File fasta
+        String dockerImage = "quay.io/biocontainers/bwa:0.7.17--hed695b0_7"
+        Int? timeMinutes = 5 + ceil(size(fasta, "G") * 5)
+    }
+    String indexedFile = basename(fasta)
+
+    command {
+        set -e
+        cp ~{fasta} ~{indexedFile}
+        bwa index ~{indexedFile}
+    }
+
+    output {
+        BwaIndex index = object {
+            fastaFile: indexedFile,
+            indexFiles: [
+                indexedFile + ".amb",
+                indexedFile + ".ann",
+                indexedFile + ".bwt",
+                indexedFile + ".pac",
+                indexedFile + ".sa"
+            ]
+        }
+    }
+
+    runtime {
+        docker: dockerImage
+        cpu: 1
+        memory: "~{size(fasta, 'G') + 1}GiB"
+        time_minutes: timeMinutes
+    }
+
+    parameter_meta {
+        # inputs
+        fasta: {description: "Reference fasta file.", category: "required"}
+        timeMinutes: {description: "The maximum amount of time the job will run in minutes.", category: "advanced"}
+        dockerImage: {description: "The docker image used for this task. Changing this may result in errors which the developers may choose not to address.", category: "advanced"}
+
+        # outputs
+        index: {description: "The produced BWA index."}
+    }
 }

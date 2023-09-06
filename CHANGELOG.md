@@ -7,8 +7,93 @@ Newest changes should be on top.
 This document is user facing. Please word the changes in such a way
 that users understand how the changes affect the new version.
 -->
-version 5.1.0-dev
+
+version 5.3.0-dev
 ---------------------------
++ Added the FastqFilter task.
++ Added a new input `revcomp` to cutadapt to set the `--revcomp` flag, defaults to `false`.
+
+
+version 5.2.0
+---------------------------
++ Update cutadapt version to 4.4
++ Update FastQC version to 0.12.1
+
+version 5.1.0
+---------------------------
++ Add the `highlyDiploidPercentage` and `somaticMinPuritySpread` inputs to the
+  hmtools PURPLE task.
++ Add a task for fastp.
++ Add a task for picard CollectInsertSizeMetrics.
++ Increased the timeMinutes runtime attribute for manta (somatic and germline) to `2880`.
++ Add a task for GRIDSS somatic filtering.
++ Add a task to generate a panel of normals BED and BEDPE file for GRIDSS.
++ Add a task to filter a GRIDSS PON.
++ Add a task for delly somatic filtering.
++ Delly CallSV's `bamFile` and `bamIndex` inputs are not arrays of files, allowing
+  for multiple samples to be included.
++ Add `samples` input to bcftools view to select samples included in the output vcf.
++ Add a separatorChar input to the tagUmi task.
++ Bug fix: Add space between flag and the value provided for macs2
++ Add optional inputs to macs2, aiming to allow adhering to Encode ATACs-seq. Inputs added:
+  + nomodel
+  + gensz
+  + extsize
+  + shiftsize
+  + pval_thres
+  + bdg
+  + keepdup
+  + callsummits
++ Update samtools image to version 1.16.
++ Add targetsFile input for samtools View.
++ Mateclever's runtime attribute defaults were changed to:
+  + memory: `"250GiB"`
+  + timeMinutes: `2880`
++ Clever's Prediction task's runtime attribute defaults were changed to:
+  + memory: `"80GiB"`
+  + timeMinutes: `2200`
++ The GRIDSS AnnotateSvTypes task now also removes the second breakend of
+  the breakpoints and single breakends. This will prepare the output better
+  to be passed into survivor.
++ Updated SURVIVOR version to 1.0.7
++ Add a combined samtools dict and samtools faidx task.
++ Add a BWA index task.
++ Move all memory notation to `KiB`, `MiB` and `GiB` from `K`, `M` and `G` 
+  previously. The WDL spec clearly distuingishes between SI and binary 
+  notations. Since Java always takes `K`, `M` and `G` to mean `KiB`, `MiB` and 
+  `GiB` this means java tasks such as GATK, FastQC and Picard will always 
+  receive enough memory now.  
++ Purple's `somaticRainfallPlot` output is now optional and included in
+  the `plots` output as well.
++ Bedtools coverage's timeMinutes now defaults to `320`.
++ Gridss' runtime attribute defaults were changed to:
+  + jvmHeapSizeGb: `64`
+  + nonJvmMemoryGb: `10`
+  + threads: `12`
++ Virusbreakend's runtime attribute defaults were changed to:
+  + threads: `12`
+  + timeMinutes: `320`
++ Cobalt's timeMinutes now defaults to `480`.
++ Orange's timeMinutes now defaults to 10.
++ Sage's runtime attributes were changed to:
+  + threads: `32`
+  + javaXmx: `"16G"`
+  + memory: `"20G"`
+  + timeMinutes: `720`
++ Sambamba's runtimeMinutes nor defaults to `320`.
++ Added a task for CupGenerateReport.
++ Updated Cuppa to version 1.6.
++ Added a task for Gripss.
++ Fixed the HealthChecker task's determination of the `succeeded` output
+  value.
++ Updated Linx to version 1.18.
++ Added a task for LinxVisualization.
++ Added a task for HMFtools Orange.
++ Added a task for HMFtools Pave.
++ Updated Purple to version 3.2.
++ Added plot and table outputs of Sage to task outputs.
++ Updated virus-interpreter to version 1.2.
++ Updated Peach to version 1.5.
 + Added a task to add SVTYPE annotations to GRIDSS results
   (`AnnotateSvTypes`).
 + The GRIDSS task will now run tabix separately if GRIDSS doesn't
