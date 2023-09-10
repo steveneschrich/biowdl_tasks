@@ -1,6 +1,6 @@
 version 1.0
 
-task prefetch {
+task Prefetch {
     input {
         String accession
         Int cpu = 1
@@ -16,7 +16,7 @@ task prefetch {
 
     output {
         # TODO: This should be more robust (file globs)
-        File sra_cache = "~{accession}/~{accession}.sra"
+        File sraCache = "~{accession}/~{accession}.sra"
     }
 
     runtime {
@@ -34,17 +34,17 @@ task prefetch {
         dockerShell: {description: "The canonical docker image uses /bin/sh, not /bin/bash, so this is overriden for the job.",category: "advanced"}
 
         # outputs
-        sra_cache: {description: "Cached (prefetched) binary form of NCBI SRA accession."}
+        sraCache: {description: "Cached (prefetched) binary form of NCBI SRA accession."}
     }
 }
 
 
 
 
-task fasterq_dump {
+task FasterqDump {
     input {
-        File sra_cache
-        String accession = basename(sra_cache,".sra")
+        File sraCache
+        String accession = basename(sraCache,".sra")
         Int cpu = 6 # Number of threads
         String memory = "16G"
         String dockerImage = "ncbi/sra-tools:3.0.1"
@@ -54,7 +54,7 @@ task fasterq_dump {
         fasterq-dump \
             --threads ~{cpu} \
             -O . \
-            ~{sra_cache}
+            ~{sraCache}
         gzip ~{accession}_*.fastq
     >>>
 
@@ -72,7 +72,7 @@ task fasterq_dump {
     }
     parameter_meta {
         # inputs
-        sra_cache: {description: "The NBCI SRA file from prefetch for extracting fastq data."}
+        sraCache: {description: "The NBCI SRA file from prefetch for extracting fastq data."}
         cpu: {description: "The number of CPUs to allocate for job.", category: "advanced"}
         memory: {description: "The amount of memory this job will use.", category: "advanced"}
         dockerImage: {description: "The docker image used for this task. Changing this may result in errors which the developers may choose not to address.", category: "advanced"}
@@ -83,7 +83,7 @@ task fasterq_dump {
     }
 }
 
-workflow download_fastq {
+workflow DownloadFastq {
 
     input {
         String accession
@@ -91,7 +91,7 @@ workflow download_fastq {
         String memory = "16G"
         String dockerImage = "ncbi/sra-tools:3.0.1"
     }
-    call prefetch as prefetch {
+    call Prefetch as prefetch {
         input:
             accession = accession,
             cpu = 1,
@@ -99,14 +99,14 @@ workflow download_fastq {
             dockerImage = dockerImage
     }
 
-    call fasterq_dump as fastq_dump {
+    call FasterqDump as fastqDump {
         input:
-            sra_cache = prefetch.sra_cache,
+            sraCache = prefetch.sraCache,
             cpu = cpu,
             memory = memory,
             dockerImage = dockerImage
     }
     output {
-        Array[File] fastqs = fastq_dump.fastqs
+        Array[File] fastqs = fastqDump.fastqs
     }
 }

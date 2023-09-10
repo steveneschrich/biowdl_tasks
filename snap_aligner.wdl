@@ -23,37 +23,37 @@ task SnapAlignerPaired {
     input {
         File fq1
         File fq2
-        String reference_genome
-        String output_base
-        String output_type = "wes"
+        String indexDirectory
+        String outputFilestem
+        String outputType = "wes"
 
         Int cpu = 16
         String dockerImage = "quay.io/biocontainers/snap-aligner:2.0.1--hd03093a_1"
         String dockerVolumes = "data/snap-hs37d5.squashfs:/snap-hs37d5:image-src=/"
         String memory = "8G"
-        Int time_minutes = 8640
+        Int timeMinutes = 8640
     }
 
     command <<<
         snap-aligner \
             paired \
-            ~{reference_genome} \
+            ~{indexDirectory} \
             ~{fq1} \
             ~{fq2} \
             -t ~{cpu} \
             -xf 2.0 \
             -so \
-            -R '@RG\tID:${output_base}\tSM:${output_base}\tPL:ILLUMINA\tLB:${output_base}_${output_type}' \
-            -o ~{output_base}.bam
+            -R '@RG\tID:${outputFilestem}\tSM:${outputFilestem}\tPL:ILLUMINA\tLB:${outputFilestem}_${outputType}' \
+            -o ~{outputFilestem}.bam
     >>>
     output {
-        File bam = output_base + ".bam"
-        File bai = output_base + ".bam.bai"
+        File bam = outputFilestem + ".bam"
+        File bai = outputFilestem + ".bam.bai"
     }
     runtime {
         memory: memory
         cpu: cpu
-        time_minutes: time_minutes
+        time_minutes: timeMinutes
         docker: dockerImage
         docker_volumes: dockerVolumes
     }
