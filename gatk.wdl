@@ -859,7 +859,8 @@ task GenotypeGVCFs {
         File referenceFastaDict
         File referenceFastaFai
         Array[String] annotationGroups = ["StandardAnnotation"]
-
+        Boolean allowOldRmsMappingQualityAnnotationData=false
+ 
         Array[File]? intervals
         File? dbsnpVCF
         File? dbsnpVCFIndex
@@ -879,6 +880,7 @@ task GenotypeGVCFs {
         -R ~{referenceFasta} \
         -O ~{outputPath} \
         ~{"-D " + dbsnpVCF} \
+        ~{true="--allow-old-rms-mapping-quality-annotation-data" false="" allowOldRmsMappingQualityAnnotationData} \
         ~{"--pedigree " + pedigree} \
         ~{true="-G" false="" length(annotationGroups) > 0} ~{sep=" -G " annotationGroups} \
         -V ~{gvcfFile} \

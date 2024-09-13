@@ -57,6 +57,9 @@ task Annotate {
     command {
         set -e
         mkdir -p "$(dirname ~{outputPath})"
+
+        bcftools index --tbi ~{inputFile}
+
         bcftools annotate \
         -o ~{outputPath} \
         -O ~{true="z" false="v" compressed} \
@@ -349,6 +352,7 @@ task View {
 
         String? exclude
         String? include
+        String? regions
         Array[String] samples = []
 
         String memory = "256MiB"
@@ -361,9 +365,11 @@ task View {
     command {
         set -e
         mkdir -p "$(dirname ~{outputPath})"
+        bcftools index --tbi ~{inputFile}
         bcftools view \
         ~{"--exclude " + exclude} \
         ~{"--include " + include} \
+        ~{"--regions " + regions} \
         ~{true="--exclude-uncalled" false="" excludeUncalled} \
         ~{if length(samples) > 0 then "-s" else ""} ~{sep="," samples} \
         -o ~{outputPath} \
@@ -391,7 +397,113 @@ task View {
         include: {description: "Select sites for which the expression is true (see man page for details).", category: "advanced"}
         exclude: {description: "Exclude sites for which the expression is true (see man page for details).", category: "advanced"}
         excludeUncalled: {description: "Exclude sites without a called genotype (see man page for details).", category: "advanced"}
+        regions: {description: "Regions to subset on (chr|chr:pos|chr:from-to|chr:from-[,...]).", category: "advanced"}
+ 
         samples: {description: "A list of sample names to include.", category: "advanced"}
+        memory: {description: "The amount of memory this job will use.", category: "advanced"}
+        timeMinutes: {description: "The maximum amount of time the job will run in minutes.", category: "advanced"}
+        dockerImage: {description: "The docker image used for this task. Changing this may result in errors which the developers may choose not to address.", category: "advanced"}
+
+        # outputs
+        outputVcf: {description: "VCF file."}
+        outputVcfIndex: {description: "Index of VCF file."}
+    }
+}
+
+
+task Index {
+    input {
+        File vcf
+        String memory = "256MiB"
+        Int timeMinutes = 1 + ceil(size(vcf, "G"))
+        String dockerImage = "quay.io/biocontainers/bcftools:1.10.2--h4f4756c_2"
+        Int? numThreads = 0
+    }
+
+    String vcfName = basename(vcf)
+    String vcfIndex = vcfName + ".tbi"
+
+    command {
+        set -e 
+        #ln -sf ~{vcf} ~{vcfName}
+        cp ~{vcf} ~{vcfName}
+        bcftools \
+            index \
+            --tbi \
+            --output ~{vcfIndex} \
+            --threads ~{numThreads} \
+            ~{vcfName}
+    }
+
+    output {
+        File outputVcf = vcfName
+        File outputVcfIndex = vcfIndex
+    }
+
+    runtime {
+        memory: memory
+        time_minutes: timeMinutes
+        docker: dockerImage
+    }
+
+    parameter_meta {
+        vcf: {description: "The VCF file to operate on.", category: "required"}
+
+        dockerImage: {description: "The docker image used for this task. Changing this may result in errors which the developers may choose not to address.", category: "advanced"}
+        numThreads: {description: "Use multithreading with INT worker threads. The option is currently used only for the compression of the output stream, only when --output-type is b or z. Default: 0."}
+        memory: {description: "The amount of memory this job will use.", category: "advanced"}
+        timeMinutes: {description: "The maximum amount of time the job will run in minutes.", category: "advanced"}
+    }
+}
+
+
+
+
+task Merge {
+    input {
+        File inputFile
+        File referenceFile
+        String outputPath = "output.vcf"
+
+        String memory = "256MiB"
+        Int timeMinutes = 1 + ceil(size(inputFile, "G"))
+        String dockerImage = "quay.io/biocontainers/bcftools:1.10.2--h4f4756c_2"
+    }
+
+    Boolean compressed = basename(outputPath) != basename(outputPath, ".gz")
+    command <<<
+        set -e
+        mkdir -p "$(dirname ~{outputPath})"
+
+        # Rather than depend on indexes beign available, just reindex them.
+        bcftools index --tbi ~{inputFile}
+        bcftools index --tbi ~{referenceFile}
+
+        bcftools merge \
+        -o ~{outputPath} \
+        -O ~{true="z" false="v" compressed} \
+        ~{inputFile} \
+        ~{referenceFile}
+
+        ~{if compressed then 'bcftools index --tbi ~{outputPath}' else ''}
+    >>>
+
+    output {
+        File outputVcf = outputPath
+        File? outputVcfIndex = outputPath + ".tbi"
+    }
+
+    runtime {
+        memory: memory
+        time_minutes: timeMinutes
+        docker: dockerImage
+    }
+
+    parameter_meta {
+        # inputs
+        inputFile: {description: "A vcf or bcf file.", category: "required"}
+        outputPath: {description: "The location the output VCF file should be written.", category: "common"}
+ 
         memory: {description: "The amount of memory this job will use.", category: "advanced"}
         timeMinutes: {description: "The maximum amount of time the job will run in minutes.", category: "advanced"}
         dockerImage: {description: "The docker image used for this task. Changing this may result in errors which the developers may choose not to address.", category: "advanced"}
