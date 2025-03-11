@@ -35,23 +35,44 @@ task Predict {
     }
 
     String sample = basename(bed, ".bed")
+    
 #reference.2.P study.2.P.in
 #${PIN_DIR}/${PIN_FILE8} 
     # The naming is strict - the input file should be "sample.bed" and
     # the model must be "sample.K.P.in".
-    command {
+    command <<<
         set -e
+        # Add model file with the correct name for admixture
         mkdir -p "$(dirname ~{outputPath})"
         cp ~{model} ~{sample}.~{K}.P.in
+        cp ~{fam} ~{sample}.fam
+
+        # Run admixture to predict (model filename is inferred).
         admixture \
             -P ~{bed} \
             ~{K} \
             --cv=~{CVE}
+        
+        # Do some cleaning up of the result file.
+        outputfile="~{sample}.~{K}.Q.tsv"
 
-    }
+        printf "ID" > $outputfile
+        for q in $(seq 1 ~{K}); do printf "\tQ$q" >>$outputfile;done
+        printf "\n" >> $outputfile
+
+        # awk magic
+        # - We start by setting the output field separator as tab (tab-delimited output)
+        # - When NR==FNR is a conditional for lines from the first file only
+        # - In the first file, we store the first field as a cache (out), indexed by line number
+        # - In the second file, $1=$1 reconsitutes the input line with OFS (here a \t).
+        # - We print out the cached field from the first file then the second file (with tab delimiters)
+        awk 'BEGIN {OFS="\t"} NR==FNR {out[FNR]=$1;next} {$1=$1; printf "%s\t%s\n", out[FNR], $0}' \
+            ~{sample}.fam ~{sample}.~{K}.Q >> $outputfile
+
+    >>>
 
     output {
-        File qFile = sample + "." + K + ".Q"
+        File qFile = "~{sample}.~{K}.Q.tsv"
     }
 
     runtime {
