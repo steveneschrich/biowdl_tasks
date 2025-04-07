@@ -167,13 +167,14 @@ task Fastq {
 
         Int threads = 1
         String memory = "1GiB"
-        Int timeMinutes = 1 + ceil(size(inputBam) * 2)
+        Int timeMinutes = 1 + ceil(size(inputBam, "GiB") * 2)
         String dockerImage = "quay.io/biocontainers/samtools:1.16.1--h6899075_1"
     }
 
     command {
         set -e
         mkdir -p "$(dirname ~{outputRead1})"
+        samtools collate -u -O ~{inputBam} | \
         samtools fastq \
         ~{true="-1" false="-s" defined(outputRead2)} ~{outputRead1} \
         ~{"-2 " + outputRead2} \
@@ -184,8 +185,7 @@ task Fastq {
         ~{true="-N" false="-n" appendReadNumber} \
         ~{true="-O" false="" outputQuality} \
         ~{"-c " + compressionLevel} \
-        ~{"--threads " + threads} \
-        ~{inputBam}
+        ~{"--threads " + threads}
     }
 
     output {
@@ -452,6 +452,40 @@ task Merge {
     }
 }
 
+task Quickcheck {
+    input {
+        File inputBam
+
+        String dockerImage = "quay.io/biocontainers/samtools:1.16.1--h6899075_1"
+    }
+
+    command {
+        set -e
+        samtools quickcheck ~{inputBam}
+    }
+
+    output {
+        File outputBam = inputBam
+    }
+
+    runtime {
+        cpu: 1
+        time_minutes: 5
+        memory: "1GiB"
+        docker: dockerImage
+    }
+
+    parameter_meta {
+        # inputs
+        inputBam: {description: "The input BAM/SAM/CRAM file.", category: "required"}
+
+        dockerImage: {description: "The docker image used for this task. Changing this may result in errors which the developers may choose not to address.", category: "advanced"}
+
+        # outputs
+        outputBam: {description: "The exact same input file, but use this so it is recognised as a dependent task."}
+    }
+}
+
 task Sort {
     input {
         File inputBam
@@ -511,6 +545,64 @@ task Sort {
         # outputs
         outputBam: {description: "Sorted BAM file."}
         outputBamIndex: {description: "Sorted BAM file index."}
+    }
+}
+
+task Split {
+    input {
+        File inputBam
+        String outputPath
+        String? unaccountedPath
+        String filenameFormat = "%!.%."
+
+        Int compressionLevel = 1
+
+        Int threads = 1
+        String memory = "1GiB"
+        Int timeMinutes = 1 + ceil(size(inputBam, "GiB") * 2)
+        String dockerImage = "quay.io/biocontainers/samtools:1.16.1--h6899075_1"
+    }
+
+    command {
+        set -e
+        mkdir -p "~{outputPath}/rg/"
+        samtools split \
+            --output-fmt bam \
+            --output-fmt-option level=~{compressionLevel} \
+            -f "~{outputPath}/rg/~{filenameFormat}" \
+            ~{"-u " + unaccountedPath} \
+            --threads ~{threads} \
+            --write-index \
+            ~{inputBam}
+    }
+
+    output {
+        Array[File] splitBam = glob(outputPath + "/rg/*.bam")
+        Array[File] splitBamIndex = glob(outputPath + "/rg/*.bam.csi")
+        File? unaccounted = unaccountedPath
+    }
+
+    runtime {
+        cpu: threads
+        memory: memory
+        docker: dockerImage
+        time_minutes: timeMinutes
+    }
+
+    parameter_meta {
+        # inputs
+        inputBam: {description: "The bam file to split.", category: "required"}
+        outputPath: {description: "Directory to store output bams", category: "required"}
+
+        # Optional parameters
+        unaccountedPath: {description: "The location to write reads to which are not detected as being part of an existing read group.", category: "common"}
+        filenameFormat: {description: "Format of the filename, the following tokens can be used: %% a literal % sign, %* basename,  %# @RG index, %! @RG ID, %. filename extension for output format", category: "common"}
+        compressionLevel: {description: "Set compression level when writing gz or bgzf fastq files.", category: "advanced"}
+
+        # outputs
+        splitBam: {description: "BAM file split by read groups"}
+        splitBamIndex: {description: "BAM indexes"}
+        unaccounted: {description: "Reads with no RG tag or an unrecognised RG tag."}
     }
 }
 

@@ -8,12 +8,27 @@ This document is user facing. Please word the changes in such a way
 that users understand how the changes affect the new version.
 -->
 
-version 5.3.0-dev
+version 6.0.0-dev
 ---------------------------
++ Add Mosdepth task.
++ Allow pbmm2 to work with a set output prefix for the BAM file.
++ Update pbmm2 docker container to version 1.17
++ Add VEP task.
++ Add Sequali task.
++ Add Clair3 task.
++ Add Modkit task.
++ Modify minimap2 task to accept ubam input, including transfer of methylation
+  tags. Also sort the BAM output file by coordinate.
++ Update DeepVariant container and update resource requirements.
++ rtg Format and VcfEval tasks now handle reference as an array of files to enable caching.
++ Added --select-genotype and --exclude-filtered flags to GATK SelectVariants
 + Use softlinks to localise the database for centrifuge.
 + Added the FastqFilter task.
 + Added a new input `revcomp` to cutadapt to set the `--revcomp` flag, defaults to `false`.
-
++ Added `samtools.Quickcheck` to allow failing on truncated files early.
++ Fixed bug whereby `samtools.Fastq` could produce out of sync R1/R2 when used with an unsorted bam input. `samtools collate` is now used by default to group reads by readname in order to avoid this issue.
++ New samtools task: split.
++ Update `bedtools.Intersect` to support `-wa`, `-wb`, and `-s` flags.
 
 version 5.2.0
 ---------------------------
