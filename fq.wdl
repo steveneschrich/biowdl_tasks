@@ -22,7 +22,11 @@ version 1.0
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-task Fastp {
+
+# NB: This is an empty placeholder for full parameters, etc. 
+# NB: Other commands to implement
+# filter, generate (random), subsample
+task FQ {
     input {
         File read1
         File read2
@@ -43,7 +47,7 @@ task Fastp {
         Int threads = 4
         String memory = "50GiB"
         Int timeMinutes = 1 + ceil(size([read1, read2], "G")  * 6.0 / threads)
-        String dockerImage = "quay.io/biocontainers/fastp:0.23.2--h5f740d0_3"
+        String dockerImage = "quay.io/biocontainers/fq:0.12.0--h9ee0642_0"
 
         Int? noneInt
     }
@@ -123,76 +127,100 @@ task Fastp {
     }
 }
 
-
-
-task DetectAdapter {
+task Version {
     input {
-        File read1
-        File read2
-        String outputPath = "."
-
-
-        Int compressionLevel = 1
-        Boolean correction = false
-        Int lengthRequired = 15
-        Int? split
-        Boolean performAdapterTrimming = true
-        Boolean performQualityFiltering = true
-        Boolean performLengthFiltering = true
-        Boolean? performPolyGTrimming
-        
-        Int threads = 4
-        String memory = "50GiB"
-        Int timeMinutes = 1 + ceil(size([read1, read2], "G")  * 6.0 / threads)
-        String dockerImage = "quay.io/biocontainers/fastp:0.23.2--h5f740d0_3"
-
-        Int? noneInt
-
-
+        String outputVersionFile = "fq_version.txt"
+        String dockerImage = "quay.io/biocontainers/fq:0.12.0--h9ee0642_0"
+        Int threads = 1
+        String memory = "4MiB"
+        Int timeMinutes = 5
     }
-    # These can be overridden, but generally are as-is.
-    String filestem = sub(basename(read1),"(\.R1)?(\.fq)?(\.fastq)?(\.gz)?", "")
-    String htmlPath = outputPath + "/" + filestem + ".fastp_adapters.html"
-    String jsonPath = outputPath + "/" + filestem + ".fastp_adapters.json"
-
-    String polyGTrimmingFlag = if defined(performPolyGTrimming)
-        then
-            if select_first([performPolyGTrimming]) then "--trim_poly_g" else "--disable_trim_poly_g"
-        else ""
-
-    Int? effectiveSplit = if select_first([split, 1]) > 1 then split else noneInt
-
     command <<<
-        set -e 
-        mkdir -p $(dirname ~{htmlPath})
-        mkdir -p $(dirname ~{jsonPath})
-
-        # predict output paths
-   
-        fastp \
-            -i ~{read1} \
-            ~{"-I " + read2} \
-            -h ~{htmlPath} \
-            -j ~{jsonPath} \
-            ~{if correction then "--correction" else ""} \
-            --length_required ~{lengthRequired} \
-            --thread ~{select_first([effectiveSplit, threads])} \
-            --detect_adapter_for_pe \
-            ~{if defined(effectiveSplit) then "-d 0" else ""} \
-            ~{if performAdapterTrimming then "" else "--disable_adapter_trimming"} \
-            ~{if performQualityFiltering then "" else "--disable_quality_filtering"} \
-            ~{if performLengthFiltering then "" else "--disable_length_filtering"} \
-            ~{polyGTrimmingFlag} \
-            --overrepresentation_analysis
+        set -e
+        fq --version > ~{outputVersionFile}
     >>>
 
     output {
-        File htmlReport = htmlPath
-        File jsonReport = jsonPath
+        File version=outputVersionFile
     }
 
     runtime {
-        cpu: select_first([effectiveSplit, threads])
+        cpu: threads
+        memory: memory
+        time_minutes: timeMinutes
+        docker: dockerImage
+    }
+
+    parameter_meta {
+        outputVersionFile: {description: "The output filename for the version.", category: "advanced"}
+        threads: {description: "The number of threads to use.", category: "advanced"}
+        memory: {description: "The amount of memory this job will use.", category: "advanced"}
+        timeMinutes: {description: "The maximum amount of time the job will run in minutes.", category: "advanced"}
+        dockerImage: {description: "The docker image used for this task. Changing this may result in errors which the developers may choose not to address.", category: "advanced"}
+    }
+
+}
+
+
+
+# https://github.com/stjude-rust-labs/fq
+# Validates a FASTQ file pair
+#
+# Usage: fq lint [OPTIONS] <R1_SRC> [R2_SRC]
+#
+# Arguments:
+#  <R1_SRC>  Read 1 source. Accepts both raw and gzipped FASTQ inputs
+#  [R2_SRC]  Read 2 source. Accepts both raw and gzipped FASTQ inputs
+#
+# Options:
+#      --lint-mode <LINT_MODE>
+#          Panic on first error or log all errors [default: panic] [possible values: panic, log]
+#      --single-read-validation-level <SINGLE_READ_VALIDATION_LEVEL>
+#          Only use single read validators up to a given level [default: high] [possible values: low, medium, high]
+#      --paired-read-validation-level <PAIRED_READ_VALIDATION_LEVEL>
+#          Only use paired read validators up to a given level [default: high] [possible values: low, medium, high]
+#      --disable-validator <DISABLE_VALIDATOR>
+#          Disable validators by code. Use multiple times to disable more than one
+#  -h, --help
+#          Print help
+#  -V, --version
+#          Print version
+#
+task Lint {
+    input {
+        File read1
+        File? read2
+        String outputPath = "."
+       
+        Int threads = 4
+        String memory = "4GiB"
+        Int timeMinutes = 1 + ceil(size([read1, read2], "G")  / threads)
+        String dockerImage = "quay.io/biocontainers/fq:0.12.0--h9ee0642_0"
+
+
+    }
+    String filestem = sub(basename(read1),"(\.fq)?(\.fastq)?(\.gz)?", "")
+    String outputLog = outputPath + "/" + filestem + ".fq-lint.log"
+
+
+    command <<<
+        set -e 
+        mkdir -p $(dirname ~{outputLog})
+
+        echo $(basename ~{read1}) $(basename ~{read2}) > ~{outputLog}
+        # predict output paths
+        fq \
+            lint \
+            --lint-mode log \
+            ~{read1} ~{read2} >> ~{outputLog}
+    >>>
+
+    output {
+        File fqLintLog = outputLog
+    }
+
+    runtime {
+        cpu: threads
         memory: memory
         time_minutes: timeMinutes
         docker: dockerImage
@@ -201,15 +229,8 @@ task DetectAdapter {
     parameter_meta {
         read1: {description: "The R1 fastq file.", category: "required"}
         read2: {description: "The R2 fastq file.", category: "required"}
-         compressionLevel: {description: "The compression level to use for the output.", category: "advanced"}
-        correction: {description: "Whether or not to apply overlap based correction.", category: "advanced"}
-        lengthRequired: {description: "The minimum read length.", category: "advanced"}
-        split: {description: "The number of chunks to split the files into. Number of threads will be set equal to the amount of splits.", category: "common"}
-        performAdapterTrimming: {description: "Whether adapter trimming should be performed or not.", category: "advanced"}
-        performQualityFiltering: {description: "Whether reads should be filtered based on quality scores.", category: "advanced"}
-        performLengthFiltering: {description: "Whether reads shoulde be filtered based on lengths.", catgegory: "advanced"}
-        performPolyGTrimming: {description: "Whether or not poly-G-tail trimming should be performed. If undefined fastp's default behaviour will be used, ie. enabled for NextSeq/NovaSeq data as detected from read headers.", category: "advanced"}
-        threads: {description: "The number of threads to use. Only used if the split input is not set.", category: "advanced"}
+        outputPath: {description: "The output path for the log file.", category: "required"}
+        threads: {description: "The number of threads to use.", category: "advanced"}
         memory: {description: "The amount of memory this job will use.", category: "advanced"}
         timeMinutes: {description: "The maximum amount of time the job will run in minutes.", category: "advanced"}
         dockerImage: {description: "The docker image used for this task. Changing this may result in errors which the developers may choose not to address.", category: "advanced"}

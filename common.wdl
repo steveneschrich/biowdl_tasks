@@ -102,7 +102,7 @@ task Copy {
         File inputFile
         String outputPath
         Boolean recursive = false
-
+        Boolean dereference = true
         # Version not that important as long as it is stable.
         String memory = "1GiB"
         String dockerImage = "debian@sha256:f05c05a218b7a4a5fe979045b1c8e2a9ec3524e5611ebfdd0ef5b8040f9008fa"
@@ -111,7 +111,9 @@ task Copy {
     command {
         set -e
         mkdir -p "$(dirname ~{outputPath})"
-        cp ~{true="-r" false="" recursive} ~{inputFile} ~{outputPath}
+        cp ~{true="-r" false="" recursive} \
+            ~{true="" false="-P" dereference} \
+            ~{inputFile} ~{outputPath}
     }
 
     output {
@@ -147,6 +149,7 @@ task CreateLink {
         memory: memory
     }
 }
+
 
 task GetSamplePositionInArray {
     input {

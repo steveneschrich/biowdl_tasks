@@ -33,6 +33,8 @@ task Cutadapt {
         Array[String] frontRead2 = []
         Array[String] anywhereRead2 = []
         String reportPath = "cutadapt_report.txt"
+        # FIXME: Standardize base filenames consistently across tasks
+        String jsonReport = "fastq.cutadapt.json"
         # Cutadapt compresses the zipped output files with a ridiculously
         # high compression level (5 or 6).
         # This is not the fast compression preset. It takes up to 400% more
@@ -82,6 +84,7 @@ task Cutadapt {
         Boolean? zeroCap
         Boolean? noZeroCap
         Boolean revcomp = false
+        Boolean polyATrimming = true
 
         Int cores = 4
         String memory = "5GiB"
@@ -107,6 +110,7 @@ task Cutadapt {
         ~{true="-G" false="" length(frontRead2) > 0} ~{sep=" -G " frontRead2} \
         ~{true="-b" false="" length(anywhere) > 0} ~{sep=" -b " anywhere} \
         ~{true="-B" false="" length(anywhereRead2) > 0} ~{sep=" -B " anywhereRead2} \
+        ~{true="--poly-a" false="" polyATrimming} \
         --output ~{read1output} ~{if defined(read2) then "-p " + realRead2output else ""} \
         --compression-level ~{compressionLevel} \
         ~{"--to-short-output " + tooShortOutputPath} \
@@ -151,6 +155,7 @@ task Cutadapt {
         ~{true="--zero-cap" false="" zeroCap} \
         ~{true="--no-zero-cap" false="" noZeroCap} \
         ~{if revcomp then "--revcomp" else ""} \
+        ~{"--json " + jsonReport} \
         ~{read1} \
         ~{read2} \
         ~{"> " + reportPath}

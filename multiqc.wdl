@@ -36,6 +36,7 @@ task MultiQC {
         Boolean interactive = true
         Boolean lint = false
         Boolean pdf = false
+        Boolean verbose = true
         # This must be actively enabled in my opinion.
         # The tools default is to upload.
         Boolean megaQCUpload = false
@@ -113,6 +114,7 @@ task MultiQC {
         ~{"--ignore-samples" + ignoreSamples} \
         ~{"--sample-names " + sampleNames} \
         ~{"--file-list " + fileList} \
+        ~{true="--verbose" false="" verbose} \
         ~{true="--exclude " false="" defined(exclude)}~{sep=" --exclude " exclude} \
         ~{true="--module " false="" defined(module)}~{sep=" --module " module} \
         ~{true="--data-dir" false="--no-data-dir" dataDir} \
