@@ -194,7 +194,7 @@ task Lint {
        
         Int threads = 4
         String memory = "4GiB"
-        Int timeMinutes = 1 + ceil(size([read1, read2], "G")  / threads)
+        Int timeMinutes = 1 + ceil(size([read1, read2], "G"))
         String dockerImage = "quay.io/biocontainers/fq:0.12.0--h9ee0642_0"
 
 
