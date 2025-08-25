@@ -35,6 +35,11 @@ task FastqScreen {
         String configFile = "/ref/fastq_screen.conf"
         String outputPath = "."
 
+        Boolean force = false
+        Boolean illumina13 = false
+        Boolean quiet = false
+        Int? subset
+
         String referenceVolume = "reference_dir:/ref"
         String dockerImage = "quay.io/biocontainers/fastq-screen:0.16.0--pl5321hdfd78af_0"
         Int threads = 4
@@ -45,6 +50,10 @@ task FastqScreen {
 
         fastq_screen \
             --threads ~{threads} \
+            ~{if force then "--force" else "" } \
+            ~{if illumina13 then "--illumina1_3" else ""} \
+            ~{if quiet then "--quiet" else ""} \
+            ~{"--subset" + subset} \
             ~{"--conf " + configFile} \
             --outdir ~{outputPath} \
             ~{read1} \
