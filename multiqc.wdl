@@ -24,7 +24,7 @@ task MultiQC {
     input {
         # Use a string here so cromwell does not relocate an entire
         # analysis directory.
-        Array[File] reports
+        Array[String] reports 
         Boolean force = false
         Boolean dirs = false
         Boolean fullNames = false
@@ -58,11 +58,11 @@ task MultiQC {
         String? clConfig
 
         String? memory
-        Int timeMinutes = 10 + ceil(size(reports, "GiB") * 8)
+        Int timeMinutes = 10 + ceil(size(select_all(reports), "GiB") * 8)
         String dockerImage = "quay.io/biocontainers/multiqc:1.25.1--pyhdfd78af_0"
     }
 
-    Int memoryGb = 2 + ceil(size(reports, "GiB"))
+    Int memoryGb = 2 + ceil(size(select_all(reports), "GiB"))
 
     # This is where the reports end up. It does not need to be changed by the
     # user. It is full of symbolic links, so it is not of any use to the user
@@ -128,7 +128,7 @@ task MultiQC {
         ~{false="--no-megaqc-upload" true="" megaQCUpload} \
         ~{"--config " + config} \
         ~{"--cl-config " + clConfig } \
-        ~{reportDir}
+        ~{reportDir} 
     }
 
     String reportFilename = if (defined(fileName))
