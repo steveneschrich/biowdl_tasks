@@ -151,11 +151,15 @@ task Star {
         String dockerImage = "quay.io/biocontainers/star:2.7.11b--h5ca1c30_5"
         
     }
+    # Unfortunately, this parameter (indexFiles) cannot be computed prior to execution of the
+    # task since it is mounted into the container at runtime. And the memory sizing (which is
+    # needed) cannot happen after initialization. 
     # 1 minute initialization + time reading in index (1 minute per G) + time aligning data.
     #Array[File] indexFiles = glob(genomeDir)
     
     # Use a margin of 30% index size. Real memory usage is ~30 GiB for a 27 GiB index. 
-    Int memoryGb = 1 + 35 + ceil(size(flatten([inputR1, inputR2]), "GiB") * 1.3)
+    #Int memoryGb = 1 + 35 + ceil(size(flatten([inputR1, inputR2]), "GiB") * 1.3)
+    Int memoryGb = 36
     # For some reason doing above calculation inside a string does not work.
     # So we solve it with an optional memory string and using select_first
     # in the runtime section.

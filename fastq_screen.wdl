@@ -42,6 +42,7 @@ task FastqScreen {
 
         String referenceVolume = "reference_dir:/ref"
         String dockerImage = "quay.io/biocontainers/fastq-screen:0.16.0--pl5321hdfd78af_0"
+        String memory = "8GiB"
         Int threads = 4
     }
     String filestemRead1 = sub(basename(read1),"(\.fq)?(\.fastq)?(\.gz)?", "")
@@ -53,7 +54,7 @@ task FastqScreen {
             ~{if force then "--force" else "" } \
             ~{if illumina13 then "--illumina1_3" else ""} \
             ~{if quiet then "--quiet" else ""} \
-            ~{"--subset" + subset} \
+            ~{"--subset=" + subset} \
             ~{"--conf " + configFile} \
             --outdir ~{outputPath} \
             ~{read1} \
@@ -70,7 +71,7 @@ task FastqScreen {
     }
     runtime {
         cpu: threads
-        #memory: memory
+        memory: memory
         #time_minutes: timeMinutes
         docker: dockerImage
         reference_volume: referenceVolume
